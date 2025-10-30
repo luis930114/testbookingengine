@@ -1,2 +1,22 @@
 */__pycache__/**
 .idea/
+
+*.py[cod]
+*$py.class
+*/__pycache__/**
+
+venv/
+*.pyc
+
+
+db.sqlite3
+
+# Archivos de migraciones cacheados
+pms/migrations/__pycache__/
+pms/migrations/__pycache__/*.pyc
+pms/form_dates/__pycache__/
+pms/form_dates/__pycache__/*.pyc
+
+# Archivos temporalmente generados por Django
+media/
+staticfiles/
