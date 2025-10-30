@@ -1,14 +1,23 @@
 from django.db.models import F, Q, Count, Sum
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.contrib import messages
 
 from .form_dates import Ymd
 from .forms import *
-from .models import Room
+from .forms import BookingDatesForm
+from .models import Room, Booking
 from .reservation_code import generate
 
+
+class BookingMixin:
+    model = Booking
+
+    def get_booking(self, pk):
+        return get_object_or_404(self.model, id=pk)
+    
 
 class BookingSearchView(View):
     # renders search results for bookingings
@@ -172,6 +181,56 @@ class EditBookingView(View):
         if customer_form.is_valid():
             customer_form.save()
             return redirect("/")
+
+     
+        
+class EditBookingDatesView(View):
+    template_name = "edit_booking_dates.html"
+
+    def get_booking(self, pk):
+        return get_object_or_404(Booking, id=pk)
+
+    def render_form(self, request, form, booking):
+        return render(request, self.template_name, {"form": form, "booking": booking})
+
+    def get(self, request, pk):
+        booking = self.get_booking(pk)
+        form = BookingDatesForm(instance=booking)
+        return self.render_form(request, form, booking)
+
+    def post(self, request, pk):
+        booking = self.get_booking(pk)
+        form = BookingDatesForm(request.POST, instance=booking)
+
+        if not form.is_valid():
+            return self.render_form(request, form, booking)
+
+        if not self.is_date_range_valid(form):
+            form.add_error(None, "La fecha de salida debe ser posterior a la fecha de entrada")
+            return self.render_form(request, form, booking)
+
+        if self.has_conflict(booking, form.cleaned_data):
+            form.add_error(None, "No hay disponibilidad para las fechas seleccionadas")
+            return self.render_form(request, form, booking)
+
+        form.save()
+        messages.success(request, "Fechas actualizadas correctamente ✅")
+        return redirect("home")  # Usa el nombre de la URL
+
+    def is_date_range_valid(self, form_data):
+        return form_data.cleaned_data['checkin'] < form_data.cleaned_data['checkout']
+
+    def has_conflict(self, booking, data):
+        checkin = data['checkin']
+        checkout = data['checkout']
+
+        return Booking.objects.filter(
+            room=booking.room,
+            state="NEW",
+            checkin__lt=checkout,
+            checkout__gt=checkin
+        ).exclude(id=booking.id).exists()
+
 
 
 class DashboardView(View):
