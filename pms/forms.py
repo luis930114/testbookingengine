@@ -73,17 +73,17 @@ class BookingDatesForm(ModelForm):
 
     def clean(self):
         """
-        Valida:
+        Valid:
          - checkin < checkout
-         - que no haya conflictos con otras reservas 'NEW' para la misma habitación
+         - There are no conflicts with other 'NEW' bookings for the same room
         """
         cleaned = super().clean()
         checkin = cleaned.get('checkin')
         checkout = cleaned.get('checkout')
 
         if not checkin or not checkout:
-            return cleaned  # dejar que required maneje esto
-
+            return cleaned  
+        
         if checkin >= checkout:
             raise ValidationError("La fecha de salida debe ser posterior a la fecha de entrada")
 
@@ -91,10 +91,8 @@ class BookingDatesForm(ModelForm):
         booking_instance = getattr(self, 'instance', None)
         room = getattr(booking_instance, 'room', None)
         if room is None:
-            # No es responsabilidad del form decidir esto, pero notificamos.
             raise ValidationError("No se pudo validar disponibilidad: la reserva no tiene habitación asignada")
 
-        # Conflicto: cualquier booking NEW que se solape.
         conflict_exists = Booking.objects.filter(
             room=room,
             state=Booking.NEW,

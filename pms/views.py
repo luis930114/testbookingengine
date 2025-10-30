@@ -2,6 +2,8 @@ from django.db.models import F, Q, Count, Sum
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views import View
+from django.urls import reverse_lazy
+from django.db import transaction
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.contrib import messages
 
@@ -157,38 +159,48 @@ class DeleteBookingView(View):
     # deletes the booking
     def post(self, request, pk):
         Booking.objects.filter(id=pk).update(state="DEL")
-        return redirect("/")
+        return redirect("/")    
 
 
-class EditBookingView(View):
-    # renders the booking edition form
+class EditBookingView(BookingMixin, View):
+    """
+    Edita los datos de contacto del cliente asociado a la reserva.
+    Mantengo dos formularios (booking/customer) como en tu implementación original,
+    pero con get_object_or_404 y transacción atómica.
+    """
     def get(self, request, pk):
-        booking = Booking.objects.get(id=pk)
+        booking = self.get_booking(pk)
         booking_form = BookingForm(prefix="booking", instance=booking)
         customer_form = CustomerForm(prefix="customer", instance=booking.customer)
         context = {
             'booking_form': booking_form,
-            'customer_form': customer_form
-
+            'customer_form': customer_form,
+            'booking': booking
         }
         return render(request, "edit_booking.html", context)
 
-    # updates the customer form
     @method_decorator(ensure_csrf_cookie)
     def post(self, request, pk):
-        booking = Booking.objects.get(id=pk)
+        booking = self.get_booking(pk)
         customer_form = CustomerForm(request.POST, prefix="customer", instance=booking.customer)
+        # Si más campos del booking cambian, podrías usar booking_form = BookingForm(...)
         if customer_form.is_valid():
-            customer_form.save()
-            return redirect("/")
+            with transaction.atomic():
+                customer_form.save()
+                messages.success(request, "Datos de contacto actualizados ✅")
+                return redirect("home")
+        # Si no es válido, re-render con errores
+        booking_form = BookingForm(prefix="booking", instance=booking)
+        context = {
+            'booking_form': booking_form,
+            'customer_form': customer_form,
+            'booking': booking
+        }
+        return render(request, "edit_booking.html", context)
 
-     
-        
-class EditBookingDatesView(View):
+
+class EditBookingDatesView(BookingMixin, View):
     template_name = "edit_booking_dates.html"
-
-    def get_booking(self, pk):
-        return get_object_or_404(Booking, id=pk)
 
     def render_form(self, request, form, booking):
         return render(request, self.template_name, {"form": form, "booking": booking})
@@ -202,35 +214,12 @@ class EditBookingDatesView(View):
         booking = self.get_booking(pk)
         form = BookingDatesForm(request.POST, instance=booking)
 
-        if not form.is_valid():
-            return self.render_form(request, form, booking)
-
-        if not self.is_date_range_valid(form):
-            form.add_error(None, "La fecha de salida debe ser posterior a la fecha de entrada")
-            return self.render_form(request, form, booking)
-
-        if self.has_conflict(booking, form.cleaned_data):
-            form.add_error(None, "No hay disponibilidad para las fechas seleccionadas")
-            return self.render_form(request, form, booking)
-
-        form.save()
-        messages.success(request, "Fechas actualizadas correctamente ✅")
-        return redirect("home")  # Usa el nombre de la URL
-
-    def is_date_range_valid(self, form_data):
-        return form_data.cleaned_data['checkin'] < form_data.cleaned_data['checkout']
-
-    def has_conflict(self, booking, data):
-        checkin = data['checkin']
-        checkout = data['checkout']
-
-        return Booking.objects.filter(
-            room=booking.room,
-            state="NEW",
-            checkin__lt=checkout,
-            checkout__gt=checkin
-        ).exclude(id=booking.id).exists()
-
+        # Con las validaciones en el form, el flujo es muy simple:
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Fechas actualizadas correctamente ✅")
+            return redirect(reverse_lazy("home"))
+        return self.render_form(request, form, booking)
 
 
 class DashboardView(View):

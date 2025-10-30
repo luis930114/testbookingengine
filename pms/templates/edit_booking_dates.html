@@ -1,0 +1,15 @@
+{% extends 'main.html' %}
+
+{% block content %}
+<div class="container">
+    <h3>Editar fechas de reserva {{ booking.code }}</h3>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a href="/" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}
