@@ -3,7 +3,6 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.urls import reverse_lazy
-from django.db import transaction
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.contrib import messages
 
@@ -164,9 +163,9 @@ class DeleteBookingView(View):
 
 class EditBookingView(BookingMixin, View):
     """
-    Edita los datos de contacto del cliente asociado a la reserva.
-    Mantengo dos formularios (booking/customer) como en tu implementación original,
-    pero con get_object_or_404 y transacción atómica.
+    Edit the contact details of the customer associated with the booking.   
+    keeping two forms (booking/customer) as in your original implementation,
+    but with atomic transactions.
     """
     def get(self, request, pk):
         booking = self.get_booking(pk)
@@ -183,13 +182,13 @@ class EditBookingView(BookingMixin, View):
     def post(self, request, pk):
         booking = self.get_booking(pk)
         customer_form = CustomerForm(request.POST, prefix="customer", instance=booking.customer)
-        # Si más campos del booking cambian, podrías usar booking_form = BookingForm(...)
+    
         if customer_form.is_valid():
             with transaction.atomic():
                 customer_form.save()
-                messages.success(request, "Datos de contacto actualizados ✅")
+                messages.success(request, "Datos de contacto actualizados")
                 return redirect("home")
-        # Si no es válido, re-render con errores
+       
         booking_form = BookingForm(prefix="booking", instance=booking)
         context = {
             'booking_form': booking_form,
@@ -214,10 +213,9 @@ class EditBookingDatesView(BookingMixin, View):
         booking = self.get_booking(pk)
         form = BookingDatesForm(request.POST, instance=booking)
 
-        # Con las validaciones en el form, el flujo es muy simple:
         if form.is_valid():
             form.save()
-            messages.success(request, "Fechas actualizadas correctamente ✅")
+            messages.success(request, "Fechas actualizadas correctamente")
             return redirect(reverse_lazy("home"))
         return self.render_form(request, form, booking)
 
