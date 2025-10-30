@@ -2,12 +2,14 @@ from django.db.models import F, Q, Count, Sum
 from django.shortcuts import render, redirect
 from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.generic import TemplateView
 from django.views.decorators.csrf import ensure_csrf_cookie
 
-from .form_dates import Ymd
-from .forms import *
-from .models import Room
-from .reservation_code import generate
+from ..form_dates import Ymd
+from ..forms import *
+from ..models import Room
+from ..reservation_code import generate
+from pms.services.dashboard_service import DashboardService
 
 
 class BookingSearchView(View):
@@ -174,7 +176,7 @@ class EditBookingView(View):
             return redirect("/")
 
 
-class DashboardView(View):
+"""class DashboardView(View):
     def get(self, request):
         from datetime import date, time, datetime
         today = date.today()
@@ -222,7 +224,15 @@ class DashboardView(View):
             'dashboard': dashboard
         }
         return render(request, "dashboard.html", context)
+"""
 
+class DashboardView(TemplateView):
+    template_name = "dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["dashboard"] = DashboardService.get_dashboard_data()
+        return context
 
 class RoomDetailsView(View):
     def get(self, request, pk):
