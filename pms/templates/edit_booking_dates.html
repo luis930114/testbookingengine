@@ -5,6 +5,7 @@
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-6">
             <div class="card shadow-lg border-0 rounded-4">
+               
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center rounded-top-4">
                     <h5 class="mb-0">
                         <i class="bi bi-calendar-check me-2"></i>
@@ -13,11 +14,12 @@
                     <span class="badge bg-light text-dark">{{ booking.code }}</span>
                 </div>
 
+                
                 <div class="card-body p-4">
                     <form method="post" class="needs-validation" novalidate>
                         {% csrf_token %}
 
-                        <!-- Mensajes de error -->
+                        <!-- Mensajes de error generales -->
                         {% if form.non_field_errors %}
                             <div class="alert alert-danger">
                                 {{ form.non_field_errors }}
@@ -37,12 +39,18 @@
                                 {% endif %}
                             </div>
                         {% endfor %}
+                        <input type="hidden" id="id_room" value="{{ booking.room.id }}">
+                        <a id="check-availability" class="btn btn-link p-0">
+                            <i class="bi bi-search me-1"></i> Verificar disponibilidad
+                        </a>
+                        <!-- Mensaje dinámico de disponibilidad -->
+                        <div id="availability-message" class="mt-2 fw-semibold"></div>
 
                         <div class="d-flex justify-content-end mt-4">
                             <a href="{% url 'home' %}" class="btn btn-outline-secondary me-2">
                                 <i class="bi bi-x-circle me-1"></i> Cancelar
                             </a>
-                            <button type="submit" class="btn btn-primary">
+                            <button id="btnguardar" type="submit" class="btn btn-primary">
                                 <i class="bi bi-save me-1"></i> Guardar cambios
                             </button>
                         </div>
@@ -56,6 +64,9 @@
         </div>
     </div>
 </div>
+
+<!-- Script principal de validación -->
 <script src="{% static 'js/validate_dates.js' %}"></script>
 {% endblock %}
+
 
