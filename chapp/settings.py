@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'whitenoise',
     'django.contrib.staticfiles',
+    'rest_framework',
     'pms.apps.PmsConfig'
 ]
 
