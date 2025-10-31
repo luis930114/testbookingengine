@@ -2,12 +2,14 @@ from django.db.models import F, Q, Count, Sum
 from django.shortcuts import render, redirect
 from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.generic import TemplateView
 from django.views.decorators.csrf import ensure_csrf_cookie
 
 from .form_dates import Ymd
 from .forms import *
 from .models import Room
 from .reservation_code import generate
+from .dashboard_service import DashboardService
 
 
 class BookingSearchView(View):
@@ -174,66 +176,13 @@ class EditBookingView(View):
             return redirect("/")
 
 
-class DashboardView(View):
-    def get(self, request):
-        from datetime import date, time, datetime
-        today = date.today()
+class DashboardView(TemplateView):
+    template_name = "dashboard.html"
 
-        # get bookings created today
-        today_min = datetime.combine(today, time.min)
-        today_max = datetime.combine(today, time.max)
-        today_range = (today_min, today_max)
-        new_bookings = (Booking.objects
-                        .filter(created__range=today_range)
-                        .values("id")
-                        ).count()
-
-        # get incoming guests
-        incoming = (Booking.objects
-                    .filter(checkin=today)
-                    .exclude(state="DEL")
-                    .values("id")
-                    ).count()
-
-        # get outcoming guests
-        outcoming = (Booking.objects
-                     .filter(checkout=today)
-                     .exclude(state="DEL")
-                     .values("id")
-                     ).count()
-
-        # get outcoming guests
-        invoiced = (Booking.objects
-                    .filter(created__range=today_range)
-                    .exclude(state="DEL")
-                    .aggregate(Sum('total'))
-                    )
-        
-         # percentage of occupation
-        total_bookings_confirmed = Booking.objects.filter(
-            state="NEW",
-            checkin__lte=today,
-            checkout__gt=today
-            ).count()
-        total_rooms = Room.objects.count()
-        percentage_occupation = (total_bookings_confirmed / total_rooms) * 100 if total_rooms > 0 else 0
-
-        # preparing context data
-        dashboard = {
-            'new_bookings': new_bookings,
-            'incoming_guests': incoming,
-            'outcoming_guests': outcoming,
-            'invoiced': invoiced,
-            'percentage_occupation': percentage_occupation,
-            'total_rooms': total_rooms,
-            'total_bookings_confirmed': total_bookings_confirmed
-
-        }
-
-        context = {
-            'dashboard': dashboard
-        }
-        return render(request, "dashboard.html", context)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["dashboard"] = DashboardService.get_dashboard_data()
+        return context
 
 
 class RoomDetailsView(View):
