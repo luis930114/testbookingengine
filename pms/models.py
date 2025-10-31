@@ -50,6 +50,7 @@ class Booking(models.Model):
     total = models.FloatField()
     code = models.CharField(max_length=8)
     created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.code
