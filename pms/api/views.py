@@ -1,33 +1,51 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
-from ..models import Booking, Room
-from datetime import datetime
+from rest_framework import status, serializers
+from .booking_service import is_room_available
+
+
+class AvailabilitySerializer(serializers.Serializer):
+    room_id = serializers.IntegerField(required=True)
+    checkin = serializers.DateField(required=True, input_formats=["%Y-%m-%d"])
+    checkout = serializers.DateField(required=True, input_formats=["%Y-%m-%d"])
+
+    def validate(self, data):
+        """Validaciones personalizadas"""
+        checkin = data["checkin"]
+        checkout = data["checkout"]
+        if checkin >= checkout:
+            raise serializers.ValidationError("La fecha de salida debe ser posterior a la de entrada.")
+        return data
+
 
 class CheckAvailabilityView(APIView):
+    """
+    API endpoint para verificar la disponibilidad de una habitación.
+
+    Parámetros de consulta:
+        - room_id: ID de la habitación (int)
+        - checkin: Fecha de entrada (YYYY-MM-DD)
+        - checkout: Fecha de salida (YYYY-MM-DD)
+
+    Respuestas:
+        200: Habitación disponible o no disponible
+        400: Parámetros inválidos o faltantes
+    """
     def get(self, request, *args, **kwargs):
-        room_id = request.query_params.get("room_id")
-        checkin = request.query_params.get("checkin")
-        checkout = request.query_params.get("checkout")
+        serializer = AvailabilitySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
 
-        if not all([room_id, checkin, checkout]):
-            return Response({"error": "Faltan parámetros"}, status=status.HTTP_400_BAD_REQUEST)
+        available = is_room_available(
+            data["room_id"],
+            data["checkin"],
+            data["checkout"]
+        )
 
-        # Convertir fechas
-        try:
-            checkin_date = datetime.strptime(checkin, "%Y-%m-%d").date()
-            checkout_date = datetime.strptime(checkout, "%Y-%m-%d").date()
-        except ValueError:
-            return Response({"error": "Formato de fecha inválido"}, status=status.HTTP_400_BAD_REQUEST)
+        message = (
+            "La habitación está disponible."
+            if available else
+            "La habitación no está disponible en esas fechas."
+        )
 
-        # Validar disponibilidad
-        overlapping = Booking.objects.filter(
-            room_id=room_id,
-            state=Booking.NEW,
-            checkin__lt=checkout_date,
-            checkout__gt=checkin_date
-        ).exists()
-
-        if overlapping:
-            return Response({"available": False, "message": "La habitación no está disponible en esas fechas."})
-        return Response({"available": True, "message": "La habitación está disponible."})
+        return Response({"available": available, "message": message}, status=status.HTTP_200_OK)
