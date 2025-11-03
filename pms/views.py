@@ -202,8 +202,7 @@ class EditBookingView(BookingMixin, View):
 
 class EditBookingDatesView(UpdateView):
     """
-    Vista basada en clases para actualizar únicamente las fechas de una reserva.
-    Usa UpdateView para reducir código repetitivo y mejorar mantenibilidad.
+    Class-based view to update only the dates of a reservation.
     """
     model = Booking
     form_class = BookingDatesForm
