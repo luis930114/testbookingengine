@@ -1,4 +1,9 @@
 {% extends "main.html"%}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+{% endblock %}
 
 {% block content %}
 <h1>Dashboard</h1>
@@ -22,6 +27,29 @@
             <h5 class="small">Total facturado</h5>
             <h1 class="dashboard-value">€ {% if dashboard.invoiced.total__sum == None %}0.00{% endif %} {{dashboard.invoiced.total__sum|floatformat:2}}</h1>
         </div>
+
+        <!-- % Ocupación -->
+        <div class="card text-white p-3 card-customization bg-success position-relative">
+            <h5 class="small">% Ocupación</h5>
+            <h1 class="dashboard-value mb-3">
+                {{ dashboard.percentage_occupation|default:0|floatformat:2 }}%
+            </h1>
+            <div class="progress" style="height: 10px; background-color: rgba(255,255,255,0.2);">
+                {% with perc=dashboard.percentage_occupation|default:0 %}
+                <div
+                    class="progress-bar {% if perc < 50 %}bg-danger{% elif perc < 80 %}bg-warning{% else %}bg-light{% endif %}"
+                    role="progressbar"
+                    style="width: {{ perc }}%;"
+                    aria-valuenow="{{ perc }}"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                ></div>
+                {% endwith %}
+            </div>
+        </div>
     </div>
 </div>
 {% endblock content%}
+{% block extra_js %}
+<script src="{% static 'js/dashboard.js' %}"></script>
+{% endblock %}

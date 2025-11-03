@@ -1,5 +1,7 @@
 from django.db import models
 
+from .booking_manager import BookingQuerySet
+
 
 # Create your models here.
 
@@ -51,6 +53,8 @@ class Booking(models.Model):
     code = models.CharField(max_length=8)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
+
+    objects = BookingQuerySet.as_manager()
 
     def __str__(self):
         return self.code
