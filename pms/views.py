@@ -2,6 +2,7 @@ from django.db.models import F, Q, Count, Sum
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.generic.edit import UpdateView
 from django.urls import reverse_lazy
 from django.db import transaction
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -199,26 +200,26 @@ class EditBookingView(BookingMixin, View):
         return render(request, "edit_booking.html", context)
 
 
-class EditBookingDatesView(BookingMixin, View):
+class EditBookingDatesView(UpdateView):
+    """
+    Vista basada en clases para actualizar únicamente las fechas de una reserva.
+    Usa UpdateView para reducir código repetitivo y mejorar mantenibilidad.
+    """
+    model = Booking
+    form_class = BookingDatesForm
     template_name = "edit_booking_dates.html"
+    context_object_name = "booking"
+    success_url = reverse_lazy("home")
 
-    def render_form(self, request, form, booking):
-        return render(request, self.template_name, {"form": form, "booking": booking})
-
-    def get(self, request, pk):
-        booking = self.get_booking(pk)
-        form = BookingDatesForm(instance=booking)
-        return self.render_form(request, form, booking)
-
-    def post(self, request, pk):
-        booking = self.get_booking(pk)
-        form = BookingDatesForm(request.POST, instance=booking)
-
-        if form.is_valid():
+    def form_valid(self, form):
+        with transaction.atomic():
             form.save()
-            messages.success(request, "Fechas actualizadas correctamente")
-            return redirect(reverse_lazy("home"))
-        return self.render_form(request, form, booking)
+            messages.success(self.request, "Fechas actualizadas correctamente.")
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, "No fue posible actualizar las fechas.")
+        return super().form_invalid(form)
 
 
 class DashboardView(View):
