@@ -2,11 +2,29 @@
 
 {% block content %}
 <h1>Habitaciones del hotel</h1>
+
+<div class="row card mt-3 mb-3 hover-card bg-tr-250">
+    <div class="col p-3">
+        <div class="">
+            <form action="{% url 'rooms' %}" method="get" class="d-flex">
+                <input type="text" name="name" class="form-control" placeholder="Buscar por nombre de habitación" value="{{name}}">
+                <div class="row">
+        <div class="col-md-auto">
+            <button class="btn btn-primary" type="submit">Buscar</button>
+        </div>
+    </div>
+            </form>
+        </div>
+        
+    </div>
+    
+</div>
+
 {% for room in rooms%}
 <div class="row card mt-3 mb-3 hover-card bg-tr-250">
     <div class="col p-3">
         <div class="">
-            {{room.name}} ({{room.room_type__name}})
+            {{room.name}} ({{room.room_type.name}})
         </div>
         <div>
             <a href="{% url 'room_details' pk=room.id%}">Ver detalles</a>
@@ -16,4 +34,22 @@
     
 </div>
 {% endfor %}
+
+{% if is_paginated %}
+<ul class="pagination">
+{% if page_obj.has_previous %}
+    <li>
+        <span><a href="?page={{ page_obj.previous_page_number }}">Anterior </a></span>
+    </li>
+{% endif %}
+    <li class="">
+        <span>Pagina {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}.</span>
+    </li>
+{% if page_obj.has_next %}
+    <li>
+        <span><a href="?page={{ page_obj.next_page_number }}"> Siguiente</a></span>
+    </li>
+{% endif %}
+</ul>
+{% endif %}
 {% endblock content%}

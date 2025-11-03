@@ -5,12 +5,13 @@ from django.views import View
 from django.views.generic.edit import UpdateView
 from django.urls import reverse_lazy
 from django.db import transaction
+from django.views.generic import ListView
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.contrib import messages
 
 from .form_dates import Ymd
 from .forms import *
-from .forms import BookingDatesForm
+#from .forms import BookingDatesForm
 from .models import Room, Booking
 from .reservation_code import generate
 
@@ -282,12 +283,45 @@ class RoomDetailsView(View):
         print(context)
         return render(request, "room_detail.html", context)
 
+    
+class RoomNameSearchView(ListView):
+    """
+    Displays a paginated list of rooms filtered by their name.
 
-class RoomsView(View):
-    def get(self, request):
-        # renders a list of rooms
-        rooms = Room.objects.all().values("name", "room_type__name", "id")
-        context = {
-            'rooms': rooms
-        }
-        return render(request, "rooms.html", context)
+    This view handles GET requests that include an optional 'name' query parameter.
+    If provided, it filters the list of `Room` objects whose names contain the given value
+    (case-insensitive). The resulting queryset is ordered alphabetically by the room name.
+
+    Attributes:
+        model (Model): The Django model used for the list view (`Room`).
+        template_name (str): The template used to render the list of rooms.
+        context_object_name (str): The name of the context variable for the list of rooms.
+        paginate_by (int): The number of rooms displayed per page.
+
+    Methods:
+        get_queryset():
+            Returns a queryset of rooms filtered by the 'name' query parameter if present.
+        get_context_data(**kwargs):
+            Adds the search term ('name') to the template context.
+    """
+
+    model = Room
+    template_name = 'rooms.html'
+    context_object_name = 'rooms'
+    paginate_by = 10
+
+    def get_queryset(self):
+        rooms = Room.objects.select_related('room_type').order_by("name")
+        self.name = self.request.GET.get('name', '')
+
+        if self.name:
+            rooms = rooms.filter(name__icontains=self.name)
+
+        return rooms
+
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['name'] = self.name
+        return context
+
