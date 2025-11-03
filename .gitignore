@@ -16,6 +16,8 @@ pms/migrations/__pycache__/
 pms/migrations/__pycache__/*.pyc
 pms/form_dates/__pycache__/
 pms/form_dates/__pycache__/*.pyc
+pms/reservation_code/__pycache__/
+pms/reservation_code/__pycache__/*.pyc
 
 # Archivos temporalmente generados por Django
 media/
